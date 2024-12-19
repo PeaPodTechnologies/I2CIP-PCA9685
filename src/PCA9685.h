@@ -45,6 +45,7 @@
 
 #define PCA9685_PRESCALE_MIN 3   /**< minimum prescale value */
 #define PCA9685_PRESCALE_MAX 255 /**< maximum prescale value */
+#define I2CIP_PCA9685_PRESCALE (uint8_t)(((I2CIP_PCA9685_OSCFREQ / (I2CIP_PCA9685_FREQ * 4096.0)) + 0.5) - 1)
 
 // Settings
 #define I2CIP_PCA9685_ADDRESS 0x40 // Default
@@ -52,7 +53,11 @@
 // #define I2CIP_PCA9685_FREQ 1600 // Default PWM Frequency
 #define I2CIP_PCA9685_FREQ 490 // Default PWM Frequency
 
-#define I2CIP_PCA9685_PRESCALE (uint8_t)(((I2CIP_PCA9685_OSCFREQ / (I2CIP_PCA9685_FREQ * 4096.0)) + 0.5) - 1)
+#ifdef I2CIP_USE_GUARANTEES
+#define I2CIP_GUARANTEE_PCA9685 9685
+class PCA9685;
+I2CIP_GUARANTEE_DEFINE(PCA9685, I2CIP_GUARANTEE_PCA9685);
+#endif
 
 typedef uint16_t i2cip_pca9685_t;
 
@@ -76,21 +81,24 @@ typedef enum {
   PCA9685_NONE = 0xFF
 } i2cip_pca9685_chsel_t;
 
-const char i2cip_pca9685_id_progmem[] PROGMEM = {"PCA9685"};
-
+// const char i2cip_pca9685_id_progmem[] PROGMEM = {"PCA9685"};
 
 // Interface class for the PCA9685 air temperature and humidity sensor
-class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t> {
-  private:
-    static bool _id_set;
-    static char _id[];
+class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t>
+  #ifdef I2CIP_USE_GUARANTEES
+  , public Guarantee<PCA9685>
+  #endif
+  {
+  I2CIP_DEVICE_CLASS_BUNDLE(PCA9685);
+  #ifdef I2CIP_USE_GUARANTEES
+  I2CIP_CLASS_USE_GUARANTEE(PCA9685, I2CIP_GUARANTEE_PCA9685);
+  #endif
 
+  private:
     const i2cip_pca9685_t _failsafe = 0x0000;
     const i2cip_pca9685_chsel_t _failsafe_args = PCA9685_NONE;
 
     bool initialized = false;
-
-    PCA9685(const i2cip_fqa_t& fqa) : PCA9685(fqa, _id) { loadID(); }
 
     #ifdef MAIN_CLASS_NAME
     friend class MAIN_CLASS_NAME;
@@ -109,20 +117,12 @@ class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca968
     i2cip_errorlevel_t setPWM(i2cip_pca9685_chsel_t num, uint16_t on, uint16_t off, bool setbus = true);
     i2cip_errorlevel_t setPin(i2cip_pca9685_chsel_t num, uint16_t val, bool invert = false, bool setbus = true);
   public:
-    PCA9685(const i2cip_fqa_t& fqa, const i2cip_id_t& id) : I2CIP::Device(fqa, id), I2CIP::OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t>((I2CIP::Device*)this) { }
-    static void loadID(void);
-
+    PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id);
 
     i2cip_errorlevel_t set(const i2cip_pca9685_t& value, const i2cip_pca9685_chsel_t& args) override;
 
     const i2cip_pca9685_chsel_t& getDefaultB(void) const override { return _failsafe_args; }
     void resetFailsafe(void) override { setValue(_failsafe); }
-
-    static const char* getStaticIDBuffer() { return PCA9685::_id; }
-    // static const char* getStaticIDBuffer() { return PCA9685::_id_set ? PCA9685::_id : nullptr; }
-
-    static I2CIP::Device* pca9685Factory(const i2cip_fqa_t& fqa, const i2cip_id_t& id) { loadID(); return new PCA9685(fqa, id); }
-    static I2CIP::Device* pca9685Factory(const i2cip_fqa_t& fqa) { loadID(); return new PCA9685(fqa, _id); }
 };
 
 #endif

@@ -5,30 +5,10 @@
 
 #include <debug.h>
 
-bool PCA9685::_id_set = false;
-char PCA9685::_id[I2CIP_ID_SIZE];
+I2CIP_DEVICE_INIT_STATIC_ID(PCA9685)
+// I2CIP_DEVICES_INIT_PROGMEM_ID(PCA9685)
 
-void PCA9685::loadID() {
-  uint8_t idlen = strlen_P(i2cip_pca9685_id_progmem);
-
-  // Read in PROGMEM
-  for (uint8_t k = 0; k < idlen; k++) {
-    char c = pgm_read_byte_near(i2cip_pca9685_id_progmem + k);
-    PCA9685::_id[k] = c;
-  }
-
-  PCA9685::_id[idlen] = '\0';
-  PCA9685::_id_set = true;
-
-  #ifdef I2CIP_DEBUG_SERIAL
-    DEBUG_DELAY();
-    I2CIP_DEBUG_SERIAL.print(F("PCA9685 RotaryEncoder ID Loaded: '"));
-    I2CIP_DEBUG_SERIAL.print(PCA9685::_id);
-    I2CIP_DEBUG_SERIAL.print(F("' @"));
-    I2CIP_DEBUG_SERIAL.println((uintptr_t)(&PCA9685::_id[0]), HEX);
-    DEBUG_DELAY();
-  #endif
-}
+PCA9685::PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id) : I2CIP::Device(fqa, id), I2CIP::OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t>((I2CIP::Device*)this) { }
 
 i2cip_errorlevel_t PCA9685::set(const i2cip_pca9685_t& value, const i2cip_pca9685_chsel_t& args) {
   i2cip_errorlevel_t errlev = I2CIP::I2CIP_ERR_NONE;
@@ -56,7 +36,8 @@ i2cip_errorlevel_t PCA9685::set(const i2cip_pca9685_t& value, const i2cip_pca968
   }
 
   // uint8_t num, uint16_t val, bool invert, bool setbus
-  return setPin(args, value % 4096, value > 4095, false);
+  // return setPin(args, (value > 4096) ? (value % 4096) : value, value > 4095, false); // Easter egg invert on truncate
+  return setPin(args, value, false, false); // Never invert
 }
 
 
@@ -137,12 +118,21 @@ i2cip_errorlevel_t PCA9685::setExtClk(uint8_t prescale, bool setbus) {
  */
 i2cip_errorlevel_t PCA9685::setPWMFreq(float freq, bool setbus) {
   // Range output modulation frequency is dependant on oscillator
-  freq = min(max(freq, 1.0f), 3500.0f); // constrain the frequency
+  freq = min(max(freq, 1.0f), 1800.0f); // constrain the frequency
 
   float prescaleval = ((I2CIP_PCA9685_OSCFREQ / (freq * 4096.0)) + 0.5) - 1;
   if (prescaleval < PCA9685_PRESCALE_MIN) prescaleval = PCA9685_PRESCALE_MIN;
   if (prescaleval > PCA9685_PRESCALE_MAX) prescaleval = PCA9685_PRESCALE_MAX;
   uint8_t prescale = (uint8_t)prescaleval;
+
+  #ifdef I2CIP_DEBUG_SERIAL
+    I2CIP_DEBUG_SERIAL.print("[");
+    I2CIP_DEBUG_SERIAL.print(PCA9685::getStaticID());
+    I2CIP_DEBUG_SERIAL.print(F(" | RESTART] FREQ "));
+    I2CIP_DEBUG_SERIAL.print(freq, DEC);
+    I2CIP_DEBUG_SERIAL.print(F("hz, PRESCALE "));
+    I2CIP_DEBUG_SERIAL.println(prescale, DEC);
+  #endif
 
   uint8_t oldmode = 0;
   i2cip_errorlevel_t errlev = readRegisterByte(PCA9685_MODE1, oldmode, false, setbus);
@@ -154,12 +144,12 @@ i2cip_errorlevel_t PCA9685::setPWMFreq(float freq, bool setbus) {
   errlev = writeRegister(PCA9685_PRESCALE, prescale, false); // set the prescaler
   I2CIP_ERR_BREAK(errlev);
 
-  // errlev = writeRegister(PCA9685_MODE1, oldmode);
-  // I2CIP_ERR_BREAK(errlev);
+  errlev = writeRegister(PCA9685_MODE1, oldmode, false);
+  I2CIP_ERR_BREAK(errlev);
 
   delay(I2CIP_PCA9685_DELAY);
 
-  return writeRegister(PCA9685_MODE1, oldmode | MODE1_RESTART | MODE1_AI, false); // Wake up (autoincrement enabled)
+  return writeRegister(PCA9685_MODE1, (oldmode | MODE1_RESTART | MODE1_AI), false); // Wake up (autoincrement enabled)
 }
 
 /*!
@@ -211,12 +201,20 @@ i2cip_errorlevel_t PCA9685::setOutputMode(bool totempole, bool setbus) {
  *  @return 0 if successful, otherwise 1
  */
 i2cip_errorlevel_t PCA9685::setPWM(i2cip_pca9685_chsel_t num, uint16_t on, uint16_t off, bool setbus) {
-  size_t len = 4; uint8_t buffer[4] = { (uint8_t)(on), (uint8_t)(on >> 8), (uint8_t)(off), (uint8_t)(off >> 8) };
+  // size_t len = 4; uint8_t buffer[4] = { (uint8_t)(on), (uint8_t)(on >> 8), (uint8_t)(off), (uint8_t)(off >> 8) };
 
-  i2cip_errorlevel_t errlev = writeRegister((uint8_t)(PCA9685_LED0_ON_L + (4 * (uint8_t)num)), (uint8_t*)buffer, len, setbus);
+  // i2cip_errorlevel_t errlev = writeRegister((uint8_t)(PCA9685_LED0_ON_L + (4 * (uint8_t)num)), (uint8_t*)buffer, len, setbus);
+  // I2CIP_ERR_BREAK(errlev);
+  // if(len != 4) return I2CIP::I2CIP_ERR_SOFT;
+  // return errlev;
+
+  i2cip_errorlevel_t errlev = writeRegister((uint8_t)(PCA9685_LED0_ON_L + (4 * num)), (uint8_t)(on & 0xFF), setbus);
   I2CIP_ERR_BREAK(errlev);
-  if(len != 4) return I2CIP::I2CIP_ERR_SOFT;
-  return errlev;
+  errlev = writeRegister((uint8_t)(PCA9685_LED0_ON_H + (4 * num)), (uint8_t)(on >> 8), false);
+  I2CIP_ERR_BREAK(errlev);
+  errlev = writeRegister((uint8_t)(PCA9685_LED0_OFF_L + (4 * num)), (uint8_t)(off & 0xFF), false);
+  I2CIP_ERR_BREAK(errlev);
+  return writeRegister((uint8_t)(PCA9685_LED0_OFF_H + (4 * num)), (uint8_t)(off >> 8), false);
 }
 
 /*!
@@ -232,35 +230,32 @@ i2cip_errorlevel_t PCA9685::setPWM(i2cip_pca9685_chsel_t num, uint16_t on, uint1
 i2cip_errorlevel_t PCA9685::setPin(i2cip_pca9685_chsel_t num, uint16_t val, bool invert, bool setbus) {
   #ifdef I2CIP_DEBUG_SERIAL
     I2CIP_DEBUG_SERIAL.print("[");
-    I2CIP_DEBUG_SERIAL.print(PCA9685::getStaticIDBuffer());
+    I2CIP_DEBUG_SERIAL.print(PCA9685::getStaticID());
     I2CIP_DEBUG_SERIAL.print(F("] CH #"));
     I2CIP_DEBUG_SERIAL.print(num, HEX);
     I2CIP_DEBUG_SERIAL.print(F(" SET: "));
-    I2CIP_DEBUG_SERIAL.println(val);
-  #endif
-  // Clamp value between 0 and 4095 inclusive.
-  val = min(val, (uint16_t)4095);
-  if (invert) {
-    if (val == 0) {
-      // Special value for signal fully on.
-      return setPWM(num, 4096, 0, setbus);
-    } else if (val == 4095) {
-      // Special value for signal fully off.
-      return setPWM(num, 0, 4096, setbus);
-    } else {
-      return setPWM(num, 0, 4095 - val, setbus);
-    }
-  } else {
-    if (val == 4095) {
-      // Special value for signal fully on.
-      return setPWM(num, 4096, 0, setbus);
+    if (val > 4095) {
+      I2CIP_DEBUG_SERIAL.println(F("ON"));
     } else if (val == 0) {
-      // Special value for signal fully off.
-      return setPWM(num, 0, 4096, setbus);
+      I2CIP_DEBUG_SERIAL.println(F("OFF"));
     } else {
-      return setPWM(num, 0, val, setbus);
+      I2CIP_DEBUG_SERIAL.println(val);
     }
+  #endif
+
+
+  if (val == 0x0000) {
+    // OFF
+    return setPWM(num, 0, 0x1000, setbus);
+  } else if (val > 0x0FFF) { // Clip
+    // ON
+    return setPWM(num, 0x1000, 0, setbus); // Special "Never ON"
+  } else {
+    return setPWM(num, 0, val, setbus);
   }
+  // else {
+  //   return (invert ? setPWM(num, 0, val, setbus) : setPWM(num, 0, 4095 - val, setbus));
+  // }
 }
 
 /*!
