@@ -90,20 +90,19 @@ class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca968
   #endif
   {
   I2CIP_DEVICE_CLASS_BUNDLE(PCA9685);
+  I2CIP_OUTPUT_USE_FAILSAFE(i2cip_pca9685_t, i2cip_pca9685_chsel_t);
   #ifdef I2CIP_USE_GUARANTEES
   I2CIP_CLASS_USE_GUARANTEE(PCA9685, I2CIP_GUARANTEE_PCA9685);
   #endif
 
   private:
-    const i2cip_pca9685_t _failsafe = 0x0000;
-    const i2cip_pca9685_chsel_t _failsafe_args = PCA9685_NONE;
-
     bool initialized = false;
 
     #ifdef MAIN_CLASS_NAME
     friend class MAIN_CLASS_NAME;
     #endif
 
+    PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id);
   protected:
 
     // i2cip_errorlevel_t reset(bool setbus = true);
@@ -117,12 +116,8 @@ class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca968
     i2cip_errorlevel_t setPWM(i2cip_pca9685_chsel_t num, uint16_t on, uint16_t off, bool setbus = true);
     i2cip_errorlevel_t setPin(i2cip_pca9685_chsel_t num, uint16_t val, bool invert = false, bool setbus = true);
   public:
-    PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id);
 
     i2cip_errorlevel_t set(const i2cip_pca9685_t& value, const i2cip_pca9685_chsel_t& args) override;
-
-    const i2cip_pca9685_chsel_t& getDefaultB(void) const override { return _failsafe_args; }
-    void resetFailsafe(void) override { setValue(_failsafe); }
 };
 
 #endif

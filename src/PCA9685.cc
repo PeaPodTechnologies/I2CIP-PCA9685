@@ -5,8 +5,8 @@
 
 #include <debug.h>
 
-I2CIP_DEVICE_INIT_STATIC_ID(PCA9685)
-// I2CIP_DEVICES_INIT_PROGMEM_ID(PCA9685)
+I2CIP_DEVICE_INIT_STATIC_ID(PCA9685);
+I2CIP_OUTPUT_INIT_FAILSAFE(PCA9685, i2cip_pca9685_t, 0x0000, i2cip_pca9685_chsel_t, PCA9685_NONE);
 
 PCA9685::PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id) : I2CIP::Device(fqa, id), I2CIP::OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t>((I2CIP::Device*)this) { }
 
