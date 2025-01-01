@@ -1,19 +1,18 @@
-#include <PCA9685.h>
-
-#include <Arduino.h>
-#include <I2CIP.h>
+#include "PCA9685.h"
 
 #include <debug.h>
 
 I2CIP_DEVICE_INIT_STATIC_ID(PCA9685);
 I2CIP_OUTPUT_INIT_FAILSAFE(PCA9685, i2cip_pca9685_t, 0x0000, i2cip_pca9685_chsel_t, PCA9685_NONE);
 
-PCA9685::PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id) : I2CIP::Device(fqa, id), I2CIP::OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t>((I2CIP::Device*)this) { }
+using namespace I2CIP;
+
+PCA9685::PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id) : Device(fqa, id), OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t>((Device*)this) { }
 
 i2cip_errorlevel_t PCA9685::set(const i2cip_pca9685_t& value, const i2cip_pca9685_chsel_t& args) {
-  i2cip_errorlevel_t errlev = I2CIP::I2CIP_ERR_NONE;
-  if(args == PCA9685_NONE) return I2CIP::I2CIP_ERR_SOFT; // What?
-  if(!initialized) {
+  i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
+  if(args == PCA9685_NONE) return I2CIP_ERR_SOFT; // What?
+  if(!this->initialized) {
     // set the default internal frequency
     // errlev = setOscillatorFrequency(I2CIP_PCA9685_OSCFREQ, false); // default args
     // I2CIP_ERR_BREAK(errlev);
@@ -32,12 +31,14 @@ i2cip_errorlevel_t PCA9685::set(const i2cip_pca9685_t& value, const i2cip_pca968
     I2CIP_ERR_BREAK(errlev);
 
     delay(I2CIP_PCA9685_DELAY);
-    initialized = true;
+    this->initialized = true;
   }
 
   // uint8_t num, uint16_t val, bool invert, bool setbus
   // return setPin(args, (value > 4096) ? (value % 4096) : value, value > 4095, false); // Easter egg invert on truncate
-  return setPin(args, value, false, false); // Never invert
+  errlev = setPin(args, value, false, false); // Never invert
+  if(errlev != I2CIP_ERR_NONE) { this->initialized = false; }
+  return errlev;
 }
 
 
@@ -205,7 +206,7 @@ i2cip_errorlevel_t PCA9685::setPWM(i2cip_pca9685_chsel_t num, uint16_t on, uint1
 
   // i2cip_errorlevel_t errlev = writeRegister((uint8_t)(PCA9685_LED0_ON_L + (4 * (uint8_t)num)), (uint8_t*)buffer, len, setbus);
   // I2CIP_ERR_BREAK(errlev);
-  // if(len != 4) return I2CIP::I2CIP_ERR_SOFT;
+  // if(len != 4) return I2CIP_ERR_SOFT;
   // return errlev;
 
   i2cip_errorlevel_t errlev = writeRegister((uint8_t)(PCA9685_LED0_ON_L + (4 * num)), (uint8_t)(on & 0xFF), setbus);
