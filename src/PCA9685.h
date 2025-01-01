@@ -48,7 +48,8 @@
 #define I2CIP_PCA9685_PRESCALE (uint8_t)(((I2CIP_PCA9685_OSCFREQ / (I2CIP_PCA9685_FREQ * 4096.0)) + 0.5) - 1)
 
 // Settings
-#define I2CIP_PCA9685_ADDRESS 0x40 // Default
+ // 0x40; Default
+#define I2CIP_PCA9685_ADDRESS 64
 #define I2CIP_PCA9685_DELAY 10 // Write/Read Sensing Delay
 // #define I2CIP_PCA9685_FREQ 1600 // Default PWM Frequency
 #define I2CIP_PCA9685_FREQ 490 // Default PWM Frequency

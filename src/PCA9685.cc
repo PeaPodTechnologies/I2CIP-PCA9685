@@ -1,5 +1,9 @@
 #include "PCA9685.h"
 
+#ifndef I2CIP_H_
+#error "I2CIP must be in I2CIP-PCA9685/libs, or, adjacent to I2CIP-PCA9685 together in $PWD/libs"
+#else
+
 // #include <debug.h>
 
 I2CIP_DEVICE_INIT_STATIC_ID(PCA9685);
@@ -307,3 +311,5 @@ i2cip_errorlevel_t PCA9685::setPin(i2cip_pca9685_chsel_t num, uint16_t val, bool
 
 //   setPWM(num, 0, pulse);
 // }
+
+#endif
