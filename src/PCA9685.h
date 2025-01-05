@@ -50,7 +50,7 @@
 // Settings
  // 0x40; Default
 #define I2CIP_PCA9685_ADDRESS 64
-#define I2CIP_PCA9685_DELAY 10 // Write/Read Sensing Delay
+#define I2CIP_PCA9685_DELAY 1000 // Write/Read Sensing Delay
 // #define I2CIP_PCA9685_FREQ 1600 // Default PWM Frequency
 #define I2CIP_PCA9685_FREQ 490 // Default PWM Frequency
 
@@ -97,8 +97,6 @@ class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca968
   #endif
 
   private:
-    bool initialized = false;
-
     #ifdef MAIN_CLASS_NAME
     friend class MAIN_CLASS_NAME;
     #endif
@@ -110,15 +108,34 @@ class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca968
     // i2cip_errorlevel_t sleep(bool setbus = true);
     // i2cip_errorlevel_t wakeup(bool setbus = true);
 
-    i2cip_errorlevel_t setExtClk(uint8_t prescale = I2CIP_PCA9685_PRESCALE, bool setbus = true);
-    i2cip_errorlevel_t setPWMFreq(float freq = I2CIP_PCA9685_FREQ, bool setbus = true);
+    i2cip_errorlevel_t setExtClk(const uint8_t& prescale = I2CIP_PCA9685_PRESCALE, bool setbus = true);
+    i2cip_errorlevel_t setPWMFreq(const float& freq = I2CIP_PCA9685_FREQ, bool setbus = true);
     i2cip_errorlevel_t setOutputMode(bool totempole, bool setbus = true);
 
-    i2cip_errorlevel_t setPWM(i2cip_pca9685_chsel_t num, uint16_t on, uint16_t off, bool setbus = true);
-    i2cip_errorlevel_t setPin(i2cip_pca9685_chsel_t num, uint16_t val, bool invert = false, bool setbus = true);
+    i2cip_errorlevel_t setPWM(const i2cip_pca9685_chsel_t& num, const uint16_t& on, const uint16_t& off, bool setbus = true);
+    i2cip_errorlevel_t setPin(const i2cip_pca9685_chsel_t& num, const uint16_t& val, bool invert = false, bool setbus = true);
+
+    i2cip_errorlevel_t sleep(bool setbus = true);
+    i2cip_errorlevel_t wakeup(bool setbus = true);
+    i2cip_errorlevel_t reset(bool setbus = true);
+
+    i2cip_errorlevel_t begin(bool setbus = true) override; // virtual Device::begin
   public:
 
     i2cip_errorlevel_t set(const i2cip_pca9685_t& value, const i2cip_pca9685_chsel_t& args) override;
+
+    static i2cip_errorlevel_t _setExtClk(const i2cip_fqa_t& fqa, const uint8_t& prescale = I2CIP_PCA9685_PRESCALE, bool setbus = true);
+    static i2cip_errorlevel_t _setPWMFreq(const i2cip_fqa_t& fqa, const float& freq = I2CIP_PCA9685_FREQ, bool setbus = true);
+    static i2cip_errorlevel_t _setOutputMode(const i2cip_fqa_t& fqa, bool totempole, bool setbus = true);
+
+    static i2cip_errorlevel_t _setPWM(const i2cip_fqa_t& fqa, const i2cip_pca9685_chsel_t& num, const uint16_t& on, const uint16_t& off, bool setbus = true);
+    static i2cip_errorlevel_t _setPin(const i2cip_fqa_t& fqa, const i2cip_pca9685_chsel_t& num, const uint16_t& val, bool invert = false, bool setbus = true);
+
+    static i2cip_errorlevel_t _sleep(const i2cip_fqa_t& fqa, bool setbus = true);
+    static i2cip_errorlevel_t _wakeup(const i2cip_fqa_t& fqa, bool setbus = true);
+    static i2cip_errorlevel_t _reset(const i2cip_fqa_t& fqa, bool setbus = true);
+
+    static i2cip_errorlevel_t _begin(const i2cip_fqa_t& fqa, bool setbus);
 };
 
 #endif

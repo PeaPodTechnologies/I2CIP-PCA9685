@@ -13,117 +13,124 @@ using namespace I2CIP;
 
 PCA9685::PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id) : Device(fqa, id), OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t>((Device*)this) { }
 
+i2cip_errorlevel_t PCA9685::begin(bool setbus) { return PCA9685::_begin(this->fqa, setbus); }
+
+i2cip_errorlevel_t PCA9685::_begin(const i2cip_fqa_t& fqa, bool setbus) {
+  i2cip_errorlevel_t errlev = _setPWMFreq(fqa, I2CIP_PCA9685_FREQ, false); // default args
+  I2CIP_ERR_BREAK(errlev);
+  // }
+
+  delayMicroseconds(I2CIP_PCA9685_DELAY);
+
+  errlev = _setOutputMode(fqa, false, false); // totempole
+  I2CIP_ERR_BREAK(errlev);
+
+  errlev = _reset(fqa, false);
+  I2CIP_ERR_BREAK(errlev);
+
+  return _wakeup(fqa, false);
+}
+
 i2cip_errorlevel_t PCA9685::set(const i2cip_pca9685_t& value, const i2cip_pca9685_chsel_t& args) {
   i2cip_errorlevel_t errlev = I2CIP_ERR_NONE;
-  if(args == PCA9685_NONE) return I2CIP_ERR_SOFT; // What?
-  if(!this->initialized) {
-    // set the default internal frequency
-    // errlev = setOscillatorFrequency(I2CIP_PCA9685_OSCFREQ, false); // default args
-    // I2CIP_ERR_BREAK(errlev);
-
-    // if (prescale) {
-    //   setExtClk(prescale);
-    // } else {
-      // set a default frequency
-    errlev = setPWMFreq(I2CIP_PCA9685_FREQ, false); // default args
-    I2CIP_ERR_BREAK(errlev);
-    // }
-
-    delay(I2CIP_PCA9685_DELAY);
-
-    errlev = setOutputMode(false, false); // totempole
-    I2CIP_ERR_BREAK(errlev);
-
-    delay(I2CIP_PCA9685_DELAY);
-    this->initialized = true;
+  // if(!this->ready) {
+  //   errlev = this->begin();
+  //   I2CIP_ERR_BREAK(errlev);
+  // }
+  if(!this->ready) {
+    return I2CIP_ERR_SOFT;
   }
+  if(args == PCA9685_NONE) return I2CIP_ERR_SOFT; // What?
 
   // uint8_t num, uint16_t val, bool invert, bool setbus
   // return setPin(args, (value > 4096) ? (value % 4096) : value, value > 4095, false); // Easter egg invert on truncate
-  errlev = setPin(args, value, false, false); // Never invert
-  if(errlev != I2CIP_ERR_NONE) { this->initialized = false; }
-  return errlev;
+  return setPin(args, value, false, true); // Never invert
 }
 
 
 
-// i2cip_errorlevel_t PCA9685::reset(bool setbus) {
-//   i2cip_errorlevel_t errlev = writeRegister(PCA9685_MODE1, MODE1_RESTART, setbus);
-//   I2CIP_ERR_BREAK(errlev);
-//   delay(I2CIP_PCA9685_DELAY);
-//   return errlev;
-// }
+i2cip_errorlevel_t PCA9685::reset(bool setbus) { return PCA9685::_reset(this->fqa, setbus); }
+i2cip_errorlevel_t PCA9685::_reset(const i2cip_fqa_t& fqa, bool setbus) {
+  i2cip_errorlevel_t errlev = Device::writeRegister(fqa, PCA9685_MODE1, MODE1_RESTART, setbus);
+  I2CIP_ERR_BREAK(errlev);
+  delayMicroseconds(I2CIP_PCA9685_DELAY);
+  return errlev;
+}
 
 /*!
  *  @brief  Puts board into sleep mode
  */
-// i2cip_errorlevel_t PCA9685::sleep(bool setbus) {
-//   uint8_t mode = 0;
-//   i2cip_errorlevel_t errlev = readRegisterByte(PCA9685_MODE1, mode, false, setbus);
-//   I2CIP_ERR_BREAK(errlev);
+i2cip_errorlevel_t PCA9685::sleep(bool setbus) { return PCA9685::_sleep(this->fqa, setbus); }
+i2cip_errorlevel_t PCA9685::_sleep(const i2cip_fqa_t& fqa, bool setbus) {
+  uint8_t mode = 0;
+  i2cip_errorlevel_t errlev = Device::readRegisterByte(fqa, PCA9685_MODE1, mode, false, setbus);
+  I2CIP_ERR_BREAK(errlev);
 
-//   mode |= MODE1_SLEEP; // set sleep bit high
-//   errlev = writeRegister(PCA9685_MODE1, sleep, false);
-//   I2CIP_ERR_BREAK(errlev);
+  mode |= MODE1_SLEEP; // set sleep bit high
+  errlev = Device::writeRegister(fqa, PCA9685_MODE1, mode, false);
+  I2CIP_ERR_BREAK(errlev);
 
-//   delay(I2CIP_PCA9685_DELAY);
-//   return errlev;
-// }
+  delayMicroseconds(I2CIP_PCA9685_DELAY);
+  return errlev;
+}
 
 /*!
  *  @brief  Wakes board from sleep
  */
-// i2cip_errorlevel_t PCA9685::wakeup(bool setbus) {
-//   uint8_t mode = 0;
-//   i2cip_errorlevel_t errlev = readRegisterByte(PCA9685_MODE1, mode, false, setbus);
-//   I2CIP_ERR_BREAK(errlev);
+i2cip_errorlevel_t PCA9685::wakeup(bool setbus) { return PCA9685::_wakeup(this->fqa, setbus); }
+i2cip_errorlevel_t PCA9685::_wakeup(const i2cip_fqa_t& fqa, bool setbus) {
+  uint8_t mode = 0;
+  i2cip_errorlevel_t errlev = Device::readRegisterByte(fqa, PCA9685_MODE1, mode, false, setbus);
+  I2CIP_ERR_BREAK(errlev);
 
-//   mode &= ~MODE1_SLEEP; // set sleep bit low
-//   errlev = writeRegister(PCA9685_MODE1, sleep, false);
-//   I2CIP_ERR_BREAK(errlev);
+  mode &= ~MODE1_SLEEP; // set sleep bit low
+  errlev = Device::writeRegister(fqa, PCA9685_MODE1, mode, false);
+  I2CIP_ERR_BREAK(errlev);
 
-//   delay(I2CIP_PCA9685_DELAY);
-//   return errlev;
-// }
+  delayMicroseconds(I2CIP_PCA9685_DELAY);
+  return errlev;
+}
 
 /*!
  *  @brief  Sets EXTCLK pin to use the external clock
  *  @param  prescale
  *          Configures the prescale value to be used by the external clock
  */
-i2cip_errorlevel_t PCA9685::setExtClk(uint8_t prescale, bool setbus) {
+i2cip_errorlevel_t PCA9685::setExtClk(const uint8_t& prescale, bool setbus) { return PCA9685::_setExtClk(this->fqa, prescale, setbus); }
+i2cip_errorlevel_t PCA9685::_setExtClk(const i2cip_fqa_t& fqa, const uint8_t& prescale, bool setbus) {
   uint8_t mode = 0;
-  i2cip_errorlevel_t errlev = readRegisterByte(PCA9685_MODE1, mode, false, setbus);
+  i2cip_errorlevel_t errlev = Device::readRegisterByte(fqa, PCA9685_MODE1, mode, false, setbus);
   I2CIP_ERR_BREAK(errlev);
 
   mode &= ~MODE1_RESTART; // clear restart bit
   mode |= MODE1_SLEEP; // set sleep bit
-  errlev = writeRegister(PCA9685_MODE1, mode, false); // go to sleep, turn off internal oscillator
+  errlev = Device::writeRegister(fqa, PCA9685_MODE1, mode, false); // go to sleep, turn off internal oscillator
   I2CIP_ERR_BREAK(errlev);
 
   // This sets both the SLEEP and EXTCLK bits of the MODE1 register to switch to
   // use the external clock.
   mode |= MODE1_EXTCLK;
-  errlev = writeRegister(PCA9685_MODE1, mode, false);
+  errlev = Device::writeRegister(fqa, PCA9685_MODE1, mode, false);
   I2CIP_ERR_BREAK(errlev);
 
-  errlev = writeRegister(PCA9685_PRESCALE, prescale, false); // set the prescaler
+  errlev = Device::writeRegister(fqa, PCA9685_PRESCALE, prescale, false); // set the prescaler
   I2CIP_ERR_BREAK(errlev);
 
-  delay(I2CIP_PCA9685_DELAY);
+  delayMicroseconds(I2CIP_PCA9685_DELAY);
 
   mode &= ~MODE1_SLEEP; // clear sleep bit
   mode |= MODE1_RESTART | MODE1_AI; // set restart, autoincrement bits
-  return writeRegister(PCA9685_MODE1, mode);
+  return Device::writeRegister(fqa, PCA9685_MODE1, mode);
 }
 
 /*!
  *  @brief  Sets the PWM frequency for the entire chip, up to ~1.6 KHz
  *  @param  freq Floating point frequency that we will attempt to match
  */
-i2cip_errorlevel_t PCA9685::setPWMFreq(float freq, bool setbus) {
+i2cip_errorlevel_t PCA9685::setPWMFreq(const float& freq, bool setbus) { return PCA9685::_setPWMFreq(this->fqa, freq, setbus); }
+i2cip_errorlevel_t PCA9685::_setPWMFreq(const i2cip_fqa_t& fqa, const float& _freq, bool setbus) {
   // Range output modulation frequency is dependant on oscillator
-  freq = min(max(freq, 1.0f), 1800.0f); // constrain the frequency
+  float freq = min(max(_freq, 1.0f), 1800.0f); // constrain the frequency
 
   float prescaleval = ((I2CIP_PCA9685_OSCFREQ / (freq * 4096.0)) + 0.5) - 1;
   if (prescaleval < PCA9685_PRESCALE_MIN) prescaleval = PCA9685_PRESCALE_MIN;
@@ -132,7 +139,7 @@ i2cip_errorlevel_t PCA9685::setPWMFreq(float freq, bool setbus) {
 
   #ifdef I2CIP_DEBUG_SERIAL
     I2CIP_DEBUG_SERIAL.print("[");
-    I2CIP_DEBUG_SERIAL.print(PCA9685::getStaticID());
+    I2CIP_DEBUG_SERIAL.print(PCA9685::getID());
     I2CIP_DEBUG_SERIAL.print(F(" | RESTART] FREQ "));
     I2CIP_DEBUG_SERIAL.print(freq, DEC);
     I2CIP_DEBUG_SERIAL.print(F("hz, PRESCALE "));
@@ -140,21 +147,21 @@ i2cip_errorlevel_t PCA9685::setPWMFreq(float freq, bool setbus) {
   #endif
 
   uint8_t oldmode = 0;
-  i2cip_errorlevel_t errlev = readRegisterByte(PCA9685_MODE1, oldmode, false, setbus);
+  i2cip_errorlevel_t errlev = Device::readRegisterByte(fqa, PCA9685_MODE1, oldmode, false, setbus);
   I2CIP_ERR_BREAK(errlev);
 
-  errlev = writeRegister(PCA9685_MODE1, (oldmode & ~MODE1_RESTART) | MODE1_SLEEP, false); // go to sleep
+  errlev = Device::writeRegister(fqa, PCA9685_MODE1, (uint8_t)((oldmode & ~MODE1_RESTART) | MODE1_SLEEP), false); // go to sleep
   I2CIP_ERR_BREAK(errlev);
 
-  errlev = writeRegister(PCA9685_PRESCALE, prescale, false); // set the prescaler
+  errlev = Device::writeRegister(fqa, PCA9685_PRESCALE, prescale, false); // set the prescaler
   I2CIP_ERR_BREAK(errlev);
 
-  errlev = writeRegister(PCA9685_MODE1, oldmode, false);
+  errlev = Device::writeRegister(fqa, PCA9685_MODE1, oldmode, false);
   I2CIP_ERR_BREAK(errlev);
 
-  delay(I2CIP_PCA9685_DELAY);
+  delayMicroseconds(I2CIP_PCA9685_DELAY);
 
-  return writeRegister(PCA9685_MODE1, (oldmode | MODE1_RESTART | MODE1_AI), false); // Wake up (autoincrement enabled)
+  return Device::writeRegister(fqa, PCA9685_MODE1, (uint8_t)(oldmode | MODE1_RESTART | MODE1_AI), false); // Wake up (autoincrement enabled)
 }
 
 /*!
@@ -164,16 +171,17 @@ i2cip_errorlevel_t PCA9685::setPWMFreq(float freq, bool setbus) {
  *  only be driven in open drain mode.
  *  @param  totempole Totempole if true, open drain if false.
  */
-i2cip_errorlevel_t PCA9685::setOutputMode(bool totempole, bool setbus) {
+i2cip_errorlevel_t PCA9685::setOutputMode(bool totempole, bool setbus) { return PCA9685::_setOutputMode(this->fqa, totempole, setbus); }
+i2cip_errorlevel_t PCA9685::_setOutputMode(const i2cip_fqa_t& fqa, bool totempole, bool setbus) {
   uint8_t mode = 0;
-  i2cip_errorlevel_t errlev = readRegisterByte(PCA9685_MODE2, mode, false, setbus);
+  i2cip_errorlevel_t errlev = Device::readRegisterByte(fqa, PCA9685_MODE2, mode, false, setbus);
   I2CIP_ERR_BREAK(errlev);
   if (totempole) {
     mode |= MODE2_OUTDRV;
   } else {
     mode &= ~MODE2_OUTDRV;
   }
-  return writeRegister(PCA9685_MODE2, mode, false);
+  return Device::writeRegister(fqa, PCA9685_MODE2, mode, false);
 }
 
 /*!
@@ -205,7 +213,8 @@ i2cip_errorlevel_t PCA9685::setOutputMode(bool totempole, bool setbus) {
  *  @param  off At what point in the 4096-part cycle to turn the PWM output OFF
  *  @return 0 if successful, otherwise 1
  */
-i2cip_errorlevel_t PCA9685::setPWM(i2cip_pca9685_chsel_t num, uint16_t on, uint16_t off, bool setbus) {
+i2cip_errorlevel_t PCA9685::setPWM(const i2cip_pca9685_chsel_t& num, const uint16_t& on, const uint16_t& off, bool setbus) { return PCA9685::_setPWM(this->fqa, num, on, off, setbus); }
+i2cip_errorlevel_t PCA9685::_setPWM(const i2cip_fqa_t& fqa, const i2cip_pca9685_chsel_t& num, const uint16_t& on, const uint16_t& off, bool setbus) {
   // size_t len = 4; uint8_t buffer[4] = { (uint8_t)(on), (uint8_t)(on >> 8), (uint8_t)(off), (uint8_t)(off >> 8) };
 
   // i2cip_errorlevel_t errlev = writeRegister((uint8_t)(PCA9685_LED0_ON_L + (4 * (uint8_t)num)), (uint8_t*)buffer, len, setbus);
@@ -213,13 +222,13 @@ i2cip_errorlevel_t PCA9685::setPWM(i2cip_pca9685_chsel_t num, uint16_t on, uint1
   // if(len != 4) return I2CIP_ERR_SOFT;
   // return errlev;
 
-  i2cip_errorlevel_t errlev = writeRegister((uint8_t)(PCA9685_LED0_ON_L + (4 * num)), (uint8_t)(on & 0xFF), setbus);
+  i2cip_errorlevel_t errlev = Device::writeRegister(fqa, (uint8_t)(PCA9685_LED0_ON_L + (4 * num)), (uint8_t)(on & 0xFF), setbus);
   I2CIP_ERR_BREAK(errlev);
-  errlev = writeRegister((uint8_t)(PCA9685_LED0_ON_H + (4 * num)), (uint8_t)(on >> 8), false);
+  errlev = Device::writeRegister(fqa, (uint8_t)(PCA9685_LED0_ON_H + (4 * num)), (uint8_t)(on >> 8), false);
   I2CIP_ERR_BREAK(errlev);
-  errlev = writeRegister((uint8_t)(PCA9685_LED0_OFF_L + (4 * num)), (uint8_t)(off & 0xFF), false);
+  errlev = Device::writeRegister(fqa, (uint8_t)(PCA9685_LED0_OFF_L + (4 * num)), (uint8_t)(off & 0xFF), false);
   I2CIP_ERR_BREAK(errlev);
-  return writeRegister((uint8_t)(PCA9685_LED0_OFF_H + (4 * num)), (uint8_t)(off >> 8), false);
+  return Device::writeRegister(fqa, (uint8_t)(PCA9685_LED0_OFF_H + (4 * num)), (uint8_t)(off >> 8), false);
 }
 
 /*!
@@ -232,10 +241,11 @@ i2cip_errorlevel_t PCA9685::setPWM(i2cip_pca9685_chsel_t num, uint16_t on, uint1
  * from 0 to 4095 inclusive.
  *   @param  invert If true, inverts the output, defaults to 'false'
  */
-i2cip_errorlevel_t PCA9685::setPin(i2cip_pca9685_chsel_t num, uint16_t val, bool invert, bool setbus) {
+i2cip_errorlevel_t PCA9685::setPin(const i2cip_pca9685_chsel_t& num, const uint16_t& val, bool invert, bool setbus) { return PCA9685::_setPin(this->fqa, num, val, invert, setbus); }
+i2cip_errorlevel_t PCA9685::_setPin(const i2cip_fqa_t& fqa, const i2cip_pca9685_chsel_t& num, const uint16_t& val, bool invert, bool setbus) {
   #ifdef I2CIP_DEBUG_SERIAL
     I2CIP_DEBUG_SERIAL.print("[");
-    I2CIP_DEBUG_SERIAL.print(PCA9685::getStaticID());
+    I2CIP_DEBUG_SERIAL.print(PCA9685::getID());
     I2CIP_DEBUG_SERIAL.print(F("] CH #"));
     I2CIP_DEBUG_SERIAL.print(num, HEX);
     I2CIP_DEBUG_SERIAL.print(F(" SET: "));
@@ -251,12 +261,12 @@ i2cip_errorlevel_t PCA9685::setPin(i2cip_pca9685_chsel_t num, uint16_t val, bool
 
   if (val == 0x0000) {
     // OFF
-    return setPWM(num, 0, 0x1000, setbus);
+    return _setPWM(fqa, num, 0, 0x1000, setbus);
   } else if (val > 0x0FFF) { // Clip
     // ON
-    return setPWM(num, 0x1000, 0, setbus); // Special "Never ON"
+    return _setPWM(fqa, num, 0x1000, 0, setbus); // Special "Never ON"
   } else {
-    return setPWM(num, 0, val, setbus);
+    return _setPWM(fqa, num, 0, val, setbus);
   }
   // else {
   //   return (invert ? setPWM(num, 0, val, setbus) : setPWM(num, 0, 4095 - val, setbus));
