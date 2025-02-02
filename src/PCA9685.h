@@ -95,6 +95,7 @@ class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca968
   #ifdef I2CIP_USE_GUARANTEES
   I2CIP_CLASS_USE_GUARANTEE(PCA9685, I2CIP_GUARANTEE_PCA9685);
   #endif
+  I2CIP_OUTPUT_USE_TOSTRING(i2cip_pca9685_t, "%d");
 
   private:
     #ifdef MAIN_CLASS_NAME
