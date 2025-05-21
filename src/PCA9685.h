@@ -54,12 +54,6 @@
 // #define I2CIP_PCA9685_FREQ 1600 // Default PWM Frequency
 #define I2CIP_PCA9685_FREQ 490 // Default PWM Frequency
 
-#ifdef I2CIP_USE_GUARANTEES
-#define I2CIP_GUARANTEE_PCA9685 9685
-class PCA9685;
-I2CIP_GUARANTEE_DEFINE(PCA9685, I2CIP_GUARANTEE_PCA9685);
-#endif
-
 typedef uint16_t i2cip_pca9685_t;
 
 typedef enum {
@@ -85,16 +79,9 @@ typedef enum {
 // const char i2cip_pca9685_id_progmem[] PROGMEM = {"PCA9685"};
 
 // Interface class for the PCA9685 air temperature and humidity sensor
-class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t>
-  #ifdef I2CIP_USE_GUARANTEES
-  , public Guarantee<PCA9685>
-  #endif
-  {
+class PCA9685 : public I2CIP::Device, public I2CIP::OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t> {
   I2CIP_DEVICE_CLASS_BUNDLE(PCA9685);
   I2CIP_OUTPUT_USE_FAILSAFE(i2cip_pca9685_t, i2cip_pca9685_chsel_t);
-  #ifdef I2CIP_USE_GUARANTEES
-  I2CIP_CLASS_USE_GUARANTEE(PCA9685, I2CIP_GUARANTEE_PCA9685);
-  #endif
   I2CIP_OUTPUT_USE_TOSTRING(i2cip_pca9685_t, "%d");
 
   private:
