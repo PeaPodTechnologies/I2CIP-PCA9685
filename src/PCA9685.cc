@@ -9,6 +9,23 @@
 I2CIP_DEVICE_INIT_STATIC_ID(PCA9685);
 I2CIP_OUTPUT_INIT_FAILSAFE(PCA9685, i2cip_pca9685_t, 0x0000, i2cip_pca9685_chsel_t, PCA9685_NONE);
 
+void PCA9685::parseJSONArgs(I2CIP::i2cip_args_io_t& argsDest, JsonVariant argsA, JsonVariant argsS, JsonVariant argsB) {
+  if(argsS.is<int>() && argsB.is<int>()) {
+    // argsA is not used, argsS is channel, argsB is value
+    int pwm = argsS.as<int>();
+    int channel = argsB.as<int>();
+    if(pwm >= 0 && pwm <= 4096 && channel >= PCA9685_CH0 && channel <= PCA9685_CH15) {
+      argsDest.s = new int(pwm);
+      argsDest.b = new int(channel);
+    }
+  }
+}
+
+void PCA9685::deleteArgs(I2CIP::i2cip_args_io_t& args) {
+  delete (int*)args.s;
+  delete (int*)args.b;
+}
+
 using namespace I2CIP;
 
 PCA9685::PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id) : Device(fqa, id), OutputInterface<i2cip_pca9685_t, i2cip_pca9685_chsel_t>((Device*)this) { }
