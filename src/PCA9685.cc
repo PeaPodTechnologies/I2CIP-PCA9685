@@ -33,13 +33,17 @@ PCA9685::PCA9685(i2cip_fqa_t fqa, const i2cip_id_t& id) : Device(fqa, id), Outpu
 i2cip_errorlevel_t PCA9685::begin(bool setbus) { return PCA9685::_begin(this->fqa, setbus); }
 
 i2cip_errorlevel_t PCA9685::_begin(const i2cip_fqa_t& fqa, bool setbus) {
-  i2cip_errorlevel_t errlev = _setPWMFreq(fqa, I2CIP_PCA9685_FREQ, false); // default args
+  i2cip_errorlevel_t errlev = _setPWMFreq(fqa, I2CIP_PCA9685_FREQ, setbus); // default args
   I2CIP_ERR_BREAK(errlev);
   // }
 
   delayMicroseconds(I2CIP_PCA9685_DELAY);
 
-  errlev = _setOutputMode(fqa, false, false); // totempole
+  #ifdef PCA9685_USE_TOTEMPOLE
+  errlev = _setOutputMode(fqa, true, false); // totempole
+  #else
+  errlev = _setOutputMode(fqa, false, false); // open-drain
+  #endif
   I2CIP_ERR_BREAK(errlev);
 
   errlev = _reset(fqa, false);
@@ -58,6 +62,9 @@ i2cip_errorlevel_t PCA9685::set(const i2cip_pca9685_t& value, const i2cip_pca968
     return I2CIP_ERR_SOFT;
   }
   if(args == PCA9685_NONE) return I2CIP_ERR_SOFT; // What?
+
+  // For testing:  Always begin
+  // this->begin();
 
   // uint8_t num, uint16_t val, bool invert, bool setbus
   // return setPin(args, (value > 4096) ? (value % 4096) : value, value > 4095, false); // Easter egg invert on truncate
@@ -266,9 +273,9 @@ i2cip_errorlevel_t PCA9685::_setPin(const i2cip_fqa_t& fqa, const i2cip_pca9685_
     I2CIP_DEBUG_SERIAL.print(F("] CH #"));
     I2CIP_DEBUG_SERIAL.print(num, HEX);
     I2CIP_DEBUG_SERIAL.print(F(" SET: "));
-    if (val > 4095) {
+    if (val > 0x0FFF) {
       I2CIP_DEBUG_SERIAL.println(F("ON"));
-    } else if (val == 0) {
+    } else if (val == 0x0000) {
       I2CIP_DEBUG_SERIAL.println(F("OFF"));
     } else {
       I2CIP_DEBUG_SERIAL.println(val);

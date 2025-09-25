@@ -53,6 +53,7 @@
 #define I2CIP_PCA9685_DELAY 1000 // Write/Read Sensing Delay
 // #define I2CIP_PCA9685_FREQ 1600 // Default PWM Frequency
 #define I2CIP_PCA9685_FREQ 490 // Default PWM Frequency
+#define PCA9685_USE_TOTEMPOLE 1 // Uncomment to use totem pole output (comment out to use open-drain)
 
 typedef uint16_t i2cip_pca9685_t;
 
